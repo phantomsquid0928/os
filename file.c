@@ -104,12 +104,60 @@ fileread(struct file *f, char *addr, int n)
     return piperead(f->pipe, addr, n);
   if(f->type == FD_INODE){
     ilock(f->ip);
-    if((r = readi(f->ip, addr, f->off, n)) > 0)
+    if((r = readi(f->ip, addr, f->off, n)) > 0) {
+      //cprintf("file off : %d\n", f->off); ///mod
       f->off += r;
+
+      //cprintf("file off changed to: %d\n", f->off);
+    }
     iunlock(f->ip);
     return r;
   }
   panic("fileread");
+}
+/** ####modified code
+ *  called from sys_lseek(void)
+ *  f : file pointer obtained from file descriptor number by argfd(0, 0, &f) 
+ *  n : +- move amount
+ *  pivot : cur = 0, start = 1, end = 2
+ * return 0 for fail, 1 for suc
+*/
+int fileseek(struct file *f, int n, int pivot) {
+  //cprintf("%d %d curoff : %d\n", n, pivot, f->off);
+  if (f->type == FD_PIPE)
+    return -1;
+  if (f->type == FD_INODE) {
+    int ret = 0;
+    ilock(f->ip);
+    if (pivot == 0) {//cur 
+      if(f->off > f->ip->size || f->off < 0)
+        return 0;
+      if(f->off + n > f->ip->size) {//##modified if cur offset (off) is on almost end, then n must be smaller than what it was.
+        n = f->ip->size;
+        ret = 1;
+      }
+      else if (f->off + n < 0) {
+        n = 0;
+        ret = 2;
+      }
+      else {
+        n = f->off + n;
+        ret = 3;
+      }
+    }
+    else if (pivot == 1) { //start
+      if (n < 0) return 0;
+    }
+    else { //end
+      if (n > 0) return 0;
+      n = f->ip->size + n;
+    }
+    f->off = n; //maybe ok?
+
+    iunlock(f->ip);
+    return ret;
+  }
+  panic("fileseek");
 }
 
 //PAGEBREAK!

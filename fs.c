@@ -300,7 +300,7 @@ ilock(struct inode *ip)
     dip = (struct dinode*)bp->data + ip->inum%IPB;
     ip->type = dip->type;
     ip->major = dip->major;
-    ip->minor = dip->minor;
+    ip->minor = dip->minor  ;
     ip->nlink = dip->nlink;
     ip->size = dip->size;
     memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
@@ -463,10 +463,10 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 
   if(off > ip->size || off + n < off)
     return -1;
-  if(off + n > ip->size)
+  if(off + n > ip->size) //##modified if cur offset (off) is on almost end, then n must be smaller than what it was.
     n = ip->size - off;
 
-  for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
+  for(tot=0; tot<n; tot+=m, off+=m, dst+=m){ //##modified reads byte, needless on lseek is this fkin read not line but 512??
     bp = bread(ip->dev, bmap(ip, off/BSIZE));
     m = min(n - tot, BSIZE - off%BSIZE);
     memmove(dst, bp->data + off%BSIZE, m);

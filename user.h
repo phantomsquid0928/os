@@ -23,6 +23,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int lseek(int, int, int); //mod
+int date(struct rtcdate *);  //mod2
+int alarm(int); //mod
+int alert(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

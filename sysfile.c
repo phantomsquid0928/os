@@ -77,6 +77,19 @@ sys_read(void)
     return -1;
   return fileread(f, p, n);
 }
+/**
+ * ####mod
+ * 
+*/
+int sys_lseek(void) {
+  struct file *f;
+  int n;
+  int pivot;
+  
+  if (argfd(0, 0, &f) < 0 || argint(1, &n) < 0 || argint(2, &pivot) < 0)
+    return -1;
+  return fileseek(f, n, pivot);
+}
 
 int
 sys_write(void)
