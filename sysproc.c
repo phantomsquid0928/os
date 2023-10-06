@@ -97,7 +97,7 @@ sys_uptime(void)
 int sys_date(void) {
   struct rtcdate *d;
   if (argptr(0, (void *)&d, sizeof(*d)) < 0) //important!!!! sysfile.c sys_fstat uses similar feature
-    return -1;
+    return -1; //패리미터가 포인터로 넘어올 때 이 방식으로 얻을 수 있다.
   cmostime(d);
   return 0;
 }
@@ -111,7 +111,7 @@ int sys_alarm(void) {  //여ㅕ기서 틱증증가로 바꿔도 댈듯
   if (argint(0, &time) < 0)
     return -1;
   if (time <= 0){
-    cprintf("timer must bigger than 0\n");
+    cprintf("timer must bigger than 0\n"); //입력된 시간 0이하시 강제종료
     kill(myproc()->pid);
     return 0;
   }
@@ -119,10 +119,10 @@ int sys_alarm(void) {  //여ㅕ기서 틱증증가로 바꿔도 댈듯
   acquire(&tickslock);
   //cprintf("ticks : %d\n", ticks);
   //release(&tickslock);
-  struct proc * p = myproc();
-  p->alarmticks = 0;
-  p->alarm_timer.seconds = time;
-  p->alarm_timer.ison = 1;
+  struct proc * p = myproc();     //해당 프로세스 가져오기
+  p->alarmticks = 0;              //시간 초기화
+  p->alarm_timer.seconds = time;  //입력된 시간 저장
+  p->alarm_timer.ison = 1;        //알람 on 표시
   
   //myproc()->state = RUNNABLE;
   
@@ -130,7 +130,7 @@ int sys_alarm(void) {  //여ㅕ기서 틱증증가로 바꿔도 댈듯
   return 0;
 }
 
-int sys_alert(void) {
+int sys_alert(void) { //오직 알람을 위한 시스템 콜
   struct rtcdate r;
   cmostime(&r);
   cprintf("SSU_Alarm!\n");

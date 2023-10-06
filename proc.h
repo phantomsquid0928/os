@@ -33,8 +33,8 @@ struct context {
 };
 
 struct timer {
-  int seconds;
-  int ison;
+  int seconds; //입력받은 시간
+  int ison;    //알람 설정 여부
   
   // uint second;
   // uint minute;
@@ -62,8 +62,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int alarmticks;
-  struct timer alarm_timer;
+  int alarmticks;              // passed time after alarm started
+  struct timer alarm_timer;    // struct for save alarm time, and wheter alarm is on
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
         printf(1, "usage : datetest\n");
         exit();
     }
-    if (date(&r) < 0) {
+    if (date(&r) < 0) {   //date system call to fetch cur time
         printf(1, "datetest : fetching rtcdate occured error\n");
         exit();
     }

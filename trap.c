@@ -54,19 +54,19 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
-      struct proc *p = myproc();
-      if (p && p->alarm_timer.ison != 0) {
+      struct proc *p = myproc();     //프로세스 가져오는 코드 -> trap 호출 대상이 프로세스면 반환되고, 아닐시 0
+      if (p && p->alarm_timer.ison != 0) { //trap을 호출한 대상이 프로세스인지 검사. 프로세스일 때, 알람이 켜져 있다면 실행된다
         // struct trapframe * tf2 = (struct trapframe*)kalloc();
         // tf2->eax = 25;
         p->alarmticks++;
-        if (p->alarm_timer.seconds * 100 <= p->alarmticks) {
-          p->killed = 1;
-          p->alarm_timer.ison = 0;
+        if (p->alarm_timer.seconds * 100 <= p->alarmticks) {  //알람 울리는 시간이 됬다면
+          p->killed = 1;       //프로세스 종료
+          p->alarm_timer.ison = 0; //알람이 꺼졌음을 표시
           // tf2 = (struct trapframe*)kalloc();
           // tf2->eax = 25;
-          //cprintf("ticks ; %d\n", ticks);      //deprecated?
-          myproc()->tf->eax = 25;
-          syscall();
+          //cprintf("ticks ; %d\n", ticks);      //deprecated 그냥 현 프로세스 tf에 25넣고 호출해도 돌아가긴 한다.
+          myproc()->tf->eax = 25;        //시스템 콜 25번 강제 호출루틴
+          syscall();                    //이거로 강제 호출 가능
         }
       }
       wakeup(&ticks);
