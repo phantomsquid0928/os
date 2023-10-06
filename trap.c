@@ -7,14 +7,14 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
-#include "date.h"
+// #include "date.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-struct trapframe * tf2 = 0;
+// struct trapframe * tf2 = 0;
 
 void
 tvinit(void)
@@ -64,7 +64,7 @@ trap(struct trapframe *tf)
           p->alarm_timer.ison = 0;
           // tf2 = (struct trapframe*)kalloc();
           // tf2->eax = 25;
-          cprintf("ticks ; %d\n", ticks);
+          //cprintf("ticks ; %d\n", ticks);      //deprecated?
           myproc()->tf->eax = 25;
           syscall();
         }

@@ -107,36 +107,40 @@ int sys_date(void) {
 */
 int sys_alarm(void) {  //여ㅕ기서 틱증증가로 바꿔도 댈듯
   int time;
-  struct rtcdate d;
+  // struct rtcdate d;
   if (argint(0, &time) < 0)
     return -1;
-  cmostime(&d);
+  if (time <= 0){
+    cprintf("timer must bigger than 0\n");
+    return 0;
+  }
+  // cmostime(&d);
   acquire(&tickslock);
-  cprintf("ticks : %d\n", ticks);
+  //cprintf("ticks : %d\n", ticks);
   //release(&tickslock);
   struct proc * p = myproc();
   p->alarmticks = 0;
   p->alarm_timer.seconds = time;
 
-  d.second = d.second + time;
-  if (d.second > 60){
-    d.minute += (int)(d.second / 60);
-    d.second = d.second % 60;
-  }
-  if (d.minute > 60) {
-    d.hour += (int)(d.minute / 60);
-    d.minute = d.minute % 60;
-  }
-  if (d.hour > 24) {
-    d.day += (int)(d.hour / 24);
-    d.hour = d.hour % 24;
-  }
-  p->alarm_timer.second = d.second;
-  p->alarm_timer.minute = d.minute;
-  p->alarm_timer.hour = d.hour;
-  p->alarm_timer.day = d.day;
-  p->alarm_timer.month = d.month;
-  p->alarm_timer.year = d.year;
+  // d.second = d.second + time;
+  // if (d.second > 60){
+  //   d.minute += (int)(d.second / 60);
+  //   d.second = d.second % 60;
+  // }
+  // if (d.minute > 60) {
+  //   d.hour += (int)(d.minute / 60);
+  //   d.minute = d.minute % 60;
+  // }
+  // if (d.hour > 24) {
+  //   d.day += (int)(d.hour / 24);
+  //   d.hour = d.hour % 24;
+  // }
+  // p->alarm_timer.second = d.second;
+  // p->alarm_timer.minute = d.minute;
+  // p->alarm_timer.hour = d.hour;
+  // p->alarm_timer.day = d.day;
+  // p->alarm_timer.month = d.month;
+  // p->alarm_timer.year = d.year;
   p->alarm_timer.ison = 1;
   
   //myproc()->state = RUNNABLE;
