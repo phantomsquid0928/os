@@ -124,9 +124,15 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER) {
 #ifdef DEFAULT
-      yield();
+      // yield();
+      myproc()->proc_tick++;
+      myproc()->cpu_used++;
+      if (myproc()->proc_tick == 30) {
+        yield();
+      }
 #else
 #ifdef CHANGED
+      // yield();
       myproc()->proc_tick++;
       myproc()->cpu_used++;
       if (myproc()->proc_tick == 30) {
