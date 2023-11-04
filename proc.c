@@ -7,10 +7,216 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// #define CHANGED
+#ifdef DEFAULT
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
+#else
+#ifdef CHANGED
+struct {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+  int priorities[100];
+  run_queue *qproc[25];
+} ptable;
+// void init_queue() {
+//   run_queue * q;
+//   for (q = ptable.qproc; q = ptable.qproc[25]; q++) {
+//     q->nodescnt = -1;
+//     q->next = 0;
+//     q->tail = 0;
+//   }
+// }
+void show_ptable_list() {
+	for (int i =0; i < 25; i++) {
+		run_queue * temp = 0;
+    cprintf("qproc[%d]: ", i);
+		if (ptable.qproc[i] == 0) {
+			cprintf("\n");
+			continue;
+		}
+		temp = ptable.qproc[i];
+		cprintf("counts : %d ", temp->nodescnt);
+		cprintf("tail : %d ", temp->tail->node->pid);
+    cprintf("\n");
+		while(temp) {
+			cprintf("     pid : %d priority : %d --[%x]", temp->node->pid, temp -> node -> priority, temp->next);
+			temp = temp -> next;
+		}
+		cprintf("\n");
+	}
+}
+int pushproc(struct proc *p, run_queue *q) {      //priority queue with linked list??????????  f for garbage
+//maybe return priority?
+  int priority = p->priority;
+  int idx = priority / 4;
+  run_queue * temp = q;
+  temp= (run_queue *)kalloc();
+  // cprintf("noeeror");
+  temp -> node = p;
+  temp -> tail = 0;
+  temp -> next = 0;
+  if (ptable.qproc[idx] == 0) {
+  	ptable.qproc[idx] = temp;
+  	ptable.qproc[idx]->tail = temp;
+  	temp -> nodescnt = 1;
+  }
+  else {
+  	ptable.qproc[idx]->tail->next = temp;
+  	ptable.qproc[idx]->tail = temp;
+  	ptable.qproc[idx]->nodescnt++;
+  }
+  return 1;
+}
+int pushnode(run_queue * target) {
+	int priority = target->node->priority;
+	int idx = priority / 4;
+	
+	target -> tail = 0;
+	target -> next = 0;
+	if (ptable.qproc[idx] == 0) {
+	  	ptable.qproc[idx] = target;
+	  	ptable.qproc[idx]->tail = target;
+	  	target -> nodescnt = 1;
+	}
+	else {
+	  	ptable.qproc[idx]->tail->next = target;
+	  	ptable.qproc[idx]->tail = target;
+	  	ptable.qproc[idx]->nodescnt++;
+	}
+  return 1;
+}
+/**
+ * mod = 1 : pop for schedule
+ * mod = 2 : pop for delete
+*/
+run_queue* pop(int idx, run_queue * p, int pid, int mod) { 
+  if (ptable.qproc[idx]->nodescnt == 0) return 0;
+  run_queue * temp = ptable.qproc[idx];
+  run_queue * past = 0;
+  run_queue * target = temp;
+  run_queue * targetpast = 0;
+  if (mod == 1) { //pop for schedule
+    while(temp) {
+      if (temp -> node ->priority < target->node->priority && target->node->state == RUNNABLE) {
+        target = temp;
+        targetpast = past;
+      }
+      past = temp;
+      temp = temp -> next;
+    }
+  }
+  if (mod == 2) { //pop for del - process erased
+    while(temp) {
+      if (temp->node->pid == pid) {
+        target = temp;
+        targetpast = past;
+      }
+      past = temp;
+      temp = temp -> next;
+    }
+  }
+  if (targetpast == 0) {
+    if (ptable.qproc[idx]->nodescnt == 1) {
+      ptable.qproc[idx] = 0;
+      return target;  //*p = *target;
+		}
+		int temp = ptable.qproc[idx]->nodescnt;
+		run_queue * temptail = ptable.qproc[idx]->tail;
+	//			cout << temp << "fsfsf ";
+		ptable.qproc[idx] = target->next;
+		ptable.qproc[idx]->nodescnt = temp - 1;
+		ptable.qproc[idx]->tail = temptail;
+	//			cout << "changed" << x << "th arr with p["<< ptable.qproc[x]->node->pid << "]";
+	}
+	else {
+		if (target->next == 0){ //tail
+			ptable.qproc[idx]->tail = targetpast;
+			targetpast->next = 0;
+			ptable.qproc[idx]->nodescnt--;
+		}
+		else {
+			ptable.qproc[idx]->nodescnt--;
+			targetpast -> next = target -> next;
+		}
+	}
+  return target;
+  
+}//////////////////// change priority func needed???????????
+run_queue* popforsched(int idx, run_queue *q) {
+  if ((q = pop(idx, q, 0, 1)) == 0) return 0;
+  ptable.priorities[q->node->priority]++;
+  if (pushnode(q) == 0) return 0;
+  return q;
+}
+run_queue * popfordel(int idx, int pid, run_queue *q) {
+  if ((q = pop(idx, q, pid, 2)) == 0) {
+    return 0;
+  }
+  return q;
+}
+int update_priority() {
+	int ilist[100];       //processes cannot exceed 64
+	run_queue * clist[100];
+	run_queue * plist[100];
+	int cnt =0 ;
+  int i;
+	for (i = 0; i < 25; i++) {
+		if (ptable.qproc[i] == 0) continue;
+		run_queue * past = 0;
+		run_queue * temp;
+		temp = ptable.qproc[i];
+		while(temp) {
+      int old = temp->node->priority;
+			temp->node->priority = temp->node->priority + (int)(temp->node->proc_tick / 10);
+      if (temp->node->priority > 99) temp->node->priority = 99; //priority max < 100
+      ptable.priorities[old]--;
+      ptable.priorities[temp->node->priority]++;
+			if ((int)temp->node->priority / 4 != i) { //needs update this run_queue node location
+				clist[cnt] = temp;
+				plist[cnt] = past;
+				ilist[cnt] = i;
+				cnt++;
+			}
+			past = temp;
+			temp = temp -> next;
+		}
+	}
+	
+	for (i = 0; i< cnt; i++) {     //del queuenode
+		int x = ilist[i];
+		if (plist[i] == 0) {
+			int temp = ptable.qproc[x]->nodescnt;
+			run_queue * temptail = ptable.qproc[x]->tail;
+//			cout << temp << "fsfsf ";
+			ptable.qproc[x] = clist[i]->next;
+			ptable.qproc[x]->nodescnt = temp -1;
+			ptable.qproc[x]->tail = temptail;
+//			cout << "changed" << x << "th arr with p["<< ptable.qproc[x]->node->pid << "]";
+		}
+		else {
+			if (clist[i]->next == 0){ //tail
+				ptable.qproc[x]->tail = plist[i];
+				plist[i]->next = 0;
+				ptable.qproc[x]->nodescnt--;
+			}
+			else {
+				ptable.qproc[x]->nodescnt--;
+				plist[i] -> next = clist[i] -> next;
+			}
+		}
+	}
+	
+	for (i = 0; i< cnt; i++) {       //repush
+    clist[i]->node->proc_tick = 0; //reset proctick that calced.
+		pushnode(clist[i]);
+	}
+	return 0;
+}
+#endif
+#endif
 
 static struct proc *initproc;
 
@@ -88,12 +294,16 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-
+  #ifdef DEFAULT
   release(&ptable.lock);
+  #endif
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
+    #ifdef CHANGED
+    release(&ptable.lock);
+    #endif
     return 0;
   }
   sp = p->kstack + KSTACKSIZE;
@@ -111,7 +321,26 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+  // cprintf("fffff");
+  //mod
+  #ifdef CHANGED
+  run_queue *q = 0;
 
+  p->proc_tick = 0;
+  p->cpu_used = 0;
+  int i;
+  for (i = 0; i < 100; i++) {       //give priority that min of priorities
+    if (ptable.priorities[i] != 0) break;
+  }
+  p->priority = i;
+  if (i == 100) p->priority = 99;
+  cprintf("p->priority: %d", p->priority);
+
+  ptable.priorities[p->priority]++;
+  pushproc(p, q);
+  // show_ptable_list();
+  release(&ptable.lock);
+  #endif
   return p;
 }
 
@@ -124,7 +353,7 @@ userinit(void)
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
-  
+  // show_ptable_list();
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
@@ -149,6 +378,11 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  #ifdef CHANGED
+  ptable.priorities[p->priority]--; //give userinit priority as 0
+  p->priority = 0;
+  ptable.priorities[0] = 1; //mod
+  #endif
 
   release(&ptable.lock);
 }
@@ -183,12 +417,12 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
-
+  // cprintf("fork : sttt");
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
   }
-
+  // cprintf("ttttttfttttttttt");
   // Copy process state from proc.
   if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
     kfree(np->kstack);
@@ -196,6 +430,7 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  // cprintf("sssssss");
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
@@ -216,8 +451,9 @@ fork(void)
 
   np->state = RUNNABLE;
 
-  release(&ptable.lock);
 
+  release(&ptable.lock);
+  cprintf("fork suces : %d\n", pid);
   return pid;
 }
 
@@ -230,7 +466,7 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
-
+  cprintf("exiting... %d", curproc->pid);
   if(curproc == initproc)
     panic("init exiting");
 
@@ -253,6 +489,7 @@ exit(void)
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
+  #ifdef DEFAULT
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
@@ -260,7 +497,25 @@ exit(void)
         wakeup1(initproc);
     }
   }
-
+  #else
+  #ifdef CHANGED
+  int i;
+  for (i = 0; i < 25; i++) {
+    if (ptable.qproc[i] == 0) continue;
+    run_queue * q = ptable.qproc[i];
+    while(q) {
+      p = q -> node;
+      if (p->parent == curproc) {
+        p->parent = initproc;
+        if (p->state == ZOMBIE)
+        wakeup1(initproc);
+      }
+      q = q -> next;
+    }
+  }
+  #endif
+  #endif
+  
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();
@@ -280,10 +535,11 @@ wait(void)
   for(;;){
     // Scan through table looking for exited children.
     havekids = 0;
+    #ifdef DEFAULT
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
-      havekids = 1;
+      havekids = 1; 
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
@@ -299,6 +555,51 @@ wait(void)
         return pid;
       }
     }
+    #else
+    #ifdef CHANGED
+    int i;
+    int cnt = 0;
+    int ilist[100];       //processes cannot exceed 64
+	  run_queue * clist[100];
+    for (i = 0; i < 25; i++) {
+      if (ptable.qproc[i] == 0) continue;
+      run_queue * temp = ptable.qproc[i];
+      while(temp) {
+        p = temp->node;
+        if (p -> parent == curproc)
+          break;
+        temp = temp -> next;
+      }
+      havekids = 1;
+      if (p->state == ZOMBIE) {
+        ilist[cnt] = i;
+        clist[cnt] = temp;
+        cnt++;
+      }
+    }
+    for (i = 0; i < cnt; i++) {
+      int idx = ilist[i];
+      p = clist[i]->node;
+      run_queue * temp = clist[i];
+      run_queue * s;
+      if ((s = popfordel(idx, p->pid, temp)) != 0) {
+          kfree((char*)temp);
+      }
+      
+      pid = p->pid;
+      kfree(p->kstack);
+      p->kstack = 0;
+      freevm(p->pgdir);
+      p->pid = 0;
+      p->parent = 0;
+      p->name[0] = 0;
+      p->killed = 0;
+      p->state = UNUSED;
+      release(&ptable.lock);
+      return pid;
+    }
+    #endif
+    #endif
 
     // No point waiting if we don't have any children.
     if(!havekids || curproc->killed){
@@ -322,6 +623,7 @@ wait(void)
 void
 scheduler(void)
 {
+  #ifdef DEFAULT
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
@@ -353,6 +655,40 @@ scheduler(void)
     release(&ptable.lock);
 
   }
+  #else
+  #ifdef CHANGED
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+
+  for (;;) {
+    sti();
+    // cprintf("ss");
+    acquire(&ptable.lock);
+    int i = 0;
+    for (i = 0; i < 25; i++) {
+      if (ptable.qproc[i] == 0) continue;
+      run_queue * target = 0;
+      // cprintf("selecting...\n");
+      if ((target = popforsched(i, target)) == 0) continue; //o(n)
+      p = target->node;
+      // cprintf("\n scheduler] : seleced: %d\n", p->pid);
+      c->proc = p;
+      // cprintf("pid : %d, priro: %d,name : %s", p->pid, p->priority, p->name);
+      // cprintf("kstack::::; %s\n", p->kstack);
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      c->proc = 0;
+    }
+    // show_ptable_list();
+    release(&ptable.lock);
+  }
+  #endif
+  #endif
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -459,9 +795,25 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
+  #ifdef DEFAULT
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
+  #else
+  #ifdef CHANGED
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == SLEEPING && p->chan == chan) {
+      int i = 0;
+      for (i = 0; i < 100; i++) {       //give priority that min of priorities for wake
+        if (ptable.priorities[i] != 0) break;
+      }
+      p->priority = i;
+      if (i == 100) p->priority = 99;
+      ptable.priorities[p->priority]++;
+      p->state = RUNNABLE;
+    }
+  #endif
+  #endif
 }
 
 // Wake up all processes sleeping on chan.

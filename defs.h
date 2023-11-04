@@ -122,6 +122,10 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+//추가해야댐
+int             update_priority(void);
+void            show_ptable_list(void);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);

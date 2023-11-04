@@ -135,5 +135,6 @@ int sys_alert(void) { //오직 알람을 위한 시스템 콜
   cmostime(&r);
   cprintf("SSU_Alarm!\n");
   cprintf("Current time : %d-%d-%d %d:%d:%d\n", r.year, r.month, r.day, r.hour, r.minute, r.second);
+  exit();
   return 0;
 }

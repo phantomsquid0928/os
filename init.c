@@ -18,6 +18,13 @@ main(void)
   }
   dup(0);  // stdout
   dup(0);  // stderr
+  #ifdef DEFAULT
+  printf(1, "normal RR scheduler\n");
+  #else
+  #ifdef CHANGED
+  printf(1, "new ULE-like scheduler\n");
+  #endif
+  #endif
 
   for(;;){
     printf(1, "init: starting sh\n");

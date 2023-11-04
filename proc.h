@@ -47,6 +47,13 @@ struct timer {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+typedef struct qnode{
+  struct proc *node;
+  int nodescnt;
+  struct qnode * next;
+  struct qnode * tail;
+} run_queue;
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -64,7 +71,12 @@ struct proc {
   char name[16];               // Process name (debugging)
   int alarmticks;              // passed time after alarm started
   struct timer alarm_timer;    // struct for save alarm time, and wheter alarm is on
+  int priority;                //priority 0 ~ 99, idle : 99
+  int proc_tick;               //time quantum
+  int cpu_used;                //total time that this process used on this cpu
+  // run_queue procnode;          //포인터썻더니 kalloc 으로 인해 오버플로 나는거같다. 그래서 proc구조체 내에 run_queue를 넣음.
 };
+
 
 // Process memory is laid out contiguously, low addresses first:
 //   text
