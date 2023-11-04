@@ -506,7 +506,7 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
-  cprintf("exiting... %d, par : %d", curproc->pid, curproc->parent->pid);
+  // cprintf("exiting... %d, par : %d", curproc->pid, curproc->parent->pid);
   if(curproc == initproc)
     panic("init exiting");
 
@@ -523,7 +523,7 @@ exit(void)
   end_op();
   curproc->cwd = 0;
 
-  acquire(&ptable.lock);
+  acquire(&ptable.lock); //?
 
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
@@ -558,6 +558,7 @@ exit(void)
   
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
+  // show_ptable_list();
   sched();
   panic("zombie exit");
 }
@@ -690,7 +691,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      cprintf("\n scheduler] : seleced: %d\n", p->pid);
+      // cprintf("\n scheduler] : seleced: %d\n", p->pid);
       
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -720,7 +721,7 @@ scheduler(void)
       // cprintf("selecting...\n");
       if ((target = popforsched(i, target)) == 0) continue; //o(n)
       p = target->node;
-      cprintf("\n scheduler] : seleced: %d\n", p->pid);
+      // cprintf("\n scheduler] : seleced: %d\n", p->pid);
       c->proc = p;
       // cprintf("pid : %d, priro: %d,name : %s", p->pid, p->priority, p->name);
       // cprintf("kstack::::; %s\n", p->kstack);
@@ -732,7 +733,7 @@ scheduler(void)
 
       c->proc = 0;
     }
-    // show_ptable_list();
+    // show_ptable_list2();
     release(&ptable.lock);
   }
   #endif
@@ -843,25 +844,25 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  // #ifdef DEFAULT
+  #ifdef DEFAULT
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
-  // #else
-  // #ifdef CHANGED
-  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-  //   if(p->state == SLEEPING && p->chan == chan) {
-  //     int i = 0;
-  //     for (i = 0; i < 100; i++) {       //give priority that min of priorities for wake
-  //       if (ptable.priorities[i] != 0) break;
-  //     }
-  //     p->priority = i;
-  //     if (i == 100) p->priority = 99;
-  //     ptable.priorities[p->priority]++;
-  //     p->state = RUNNABLE;
-  //   }
-  // #endif
-  // #endif
+  #else
+  #ifdef CHANGED
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state == SLEEPING && p->chan == chan) {
+      int i = 0;
+      for (i = 0; i < 100; i++) {       //give priority that min of priorities for wake
+        if (ptable.priorities[i] != 0) break;
+      }
+      p->priority = i;
+      if (i == 100) p->priority = 99;
+      ptable.priorities[p->priority]++;
+      p->state = RUNNABLE;
+    }
+  #endif
+  #endif
 }
 
 // Wake up all processes sleeping on chan.
