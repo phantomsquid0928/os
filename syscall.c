@@ -107,6 +107,7 @@ extern int sys_uptime(void);
 extern int sys_date(void);
 extern int sys_alarm(void);
 extern int sys_alert(void);
+extern int sys_set_sched_info(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,6 +134,7 @@ static int (*syscalls[])(void) = {
 [SYS_date]    sys_date,
 [SYS_alarm]   sys_alarm,
 [SYS_alert]   sys_alert,
+[SYS_set_sched_info]  sys_set_sched_info,
 };
 
 void

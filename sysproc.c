@@ -125,7 +125,6 @@ int sys_alarm(void) {  //여ㅕ기서 틱증증가로 바꿔도 댈듯
   p->alarm_timer.ison = 1;        //알람 on 표시
   
   //myproc()->state = RUNNABLE;
-  
   release(&tickslock);
   return 0;
 }
@@ -136,5 +135,14 @@ int sys_alert(void) { //오직 알람을 위한 시스템 콜
   cprintf("SSU_Alarm!\n");
   cprintf("Current time : %d-%d-%d %d:%d:%d\n", r.year, r.month, r.day, r.hour, r.minute, r.second);
   exit();
+  return 0;
+}
+
+int sys_set_sched_info(void) {
+  int pid, priority;
+  if (argint(0, &pid) < 0) return -1;
+  if (argint(1, &priority) < 0) return -1;
+  //acquire?
+  if (change_priority(pid, priority) == 0) return -1; //failed
   return 0;
 }

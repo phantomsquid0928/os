@@ -125,6 +125,7 @@ void            yield(void);
 //추가해야댐
 int             update_priority(void);
 void            show_ptable_list(void);
+int             change_priority(int, int);
 
 
 // swtch.S

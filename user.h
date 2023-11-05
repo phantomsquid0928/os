@@ -27,6 +27,7 @@ int lseek(int, int, int); //mod
 int date(struct rtcdate *);  //mod2
 int alarm(int); //mod
 int alert(void);
+int set_sched_info(int, int); //mod
 
 // ulib.c
 int stat(const char*, struct stat*);

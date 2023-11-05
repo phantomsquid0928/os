@@ -25,3 +25,4 @@
 #define SYS_date 23
 #define SYS_alarm 24
 #define SYS_alert 25
+#define SYS_set_sched_info 26

@@ -201,18 +201,24 @@ int update_priority() {
 	run_queue * plist[100];
 	int cnt =0 ;
   int i;
+  acquire(&ptable.lock); ///MODMOMODMO
 	for (i = 0; i < 25; i++) {
 		if (ptable.qproc[i] == 0) continue;
 		run_queue * past = 0;
 		run_queue * temp;
 		temp = ptable.qproc[i];
 		while(temp) {
+      int chk = 0;
       int old = temp->node->priority;
 			temp->node->priority = temp->node->priority + (int)(temp->node->proc_tick / 10);
-      if (temp->node->priority > 99) temp->node->priority = 99; //priority max < 100
+      if (temp->node->priority > 99) 
+      {
+        chk = 1;
+        temp->node->priority = 99; //priority max < 100
+      }
       ptable.priorities[old]--;
       ptable.priorities[temp->node->priority]++;
-			if ((int)temp->node->priority / 4 != i) { //needs update this run_queue node location
+			if ((int)temp->node->priority / 4 != i || chk == 1) { //needs update this run_queue node location
 				clist[cnt] = temp;
 				plist[cnt] = past;
 				ilist[cnt] = i;
@@ -222,13 +228,23 @@ int update_priority() {
 			temp = temp -> next;
 		}
 	}
-	
+	cprintf("%d", cnt);
 	for (i = 0; i< cnt; i++) {     //del queuenode
 		int x = ilist[i];
-		if (plist[i] == 0) {
+		if (plist[i] == 0) { //head node
+      if (ptable.qproc[x]->nodescnt == 1) {
+        ptable.qproc[x]->tail = 0;
+        ptable.qproc[x]->next = 0;
+        ptable.qproc[x]->nodescnt = 0;
+        ptable.qproc[x] = 0;
+        continue;  //*p = *target;
+      }
 			int temp = ptable.qproc[x]->nodescnt;
 			run_queue * temptail = ptable.qproc[x]->tail;
 //			cout << temp << "fsfsf ";
+      ptable.qproc[x]->tail = 0;
+      ptable.qproc[x]->next = 0;
+      ptable.qproc[x]->nodescnt = 0;
 			ptable.qproc[x] = clist[i]->next;
 			ptable.qproc[x]->nodescnt = temp -1;
 			ptable.qproc[x]->tail = temptail;
@@ -249,9 +265,25 @@ int update_priority() {
 	
 	for (i = 0; i< cnt; i++) {       //repush
     clist[i]->node->proc_tick = 0; //reset proctick that calced.
+    clist[i]->next = 0;
+    clist[i]->tail = 0;
+    clist[i]->nodescnt = 0;
+    cprintf("pid %d %d pri :%dupdated\n", clist[i]->node->pid, clist[i]->node->proc_tick, clist[i]->node->priority);
 		pushnode(clist[i]);
 	}
+  show_ptable_list();
+  release(&ptable.lock);
 	return 0;
+}
+int change_priority(int pid, int priority) {
+  struct proc * p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->pid == pid) {
+      p->priority = priority;
+      return 1;
+    }
+  }
+  return 0;
 }
 #endif
 #endif
@@ -691,7 +723,7 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-      // cprintf("\n scheduler] : seleced: %d\n", p->pid);
+      cprintf("\n scheduler] : seleced: %d\n", p->pid);
       
       swtch(&(c->scheduler), p->context);
       switchkvm();
@@ -723,7 +755,7 @@ scheduler(void)
       p = target->node;
       // cprintf("\n scheduler] : seleced: %d\n", p->pid);
       c->proc = p;
-      // cprintf("pid : %d, priro: %d,name : %s", p->pid, p->priority, p->name);
+      // cprintf("pid : %d , priro: %d,name : %s", p->pid, p->priority, p->name);
       // cprintf("kstack::::; %s\n", p->kstack);
       switchuvm(p);
       p->state = RUNNING;
@@ -924,7 +956,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+    cprintf("%d %s %s :: new info :: %d %d %d", p->pid, state, p->name, p->priority, p->proc_tick, p->cpu_used);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
