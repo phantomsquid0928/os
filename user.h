@@ -23,6 +23,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int getvp(void);
+int getpp(void);
+char * ssualloc(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -37,3 +40,5 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+int ssualloc2(uint);

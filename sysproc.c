@@ -89,3 +89,25 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_getvp(void) {
+  return PGROUNDUP(myproc()->sz) / PGSIZE;
+}
+
+int sys_getpp(void) {
+  return PGROUNDUP(myproc()->psz) / PGSIZE;
+}
+
+int sys_ssualloc(void) { //sbrk 따온거 -> 수정필요, 테스트용
+  int addr;
+  int n;
+
+  if(argint(0, &n) < 0)
+    return -1;
+  addr = myproc()->sz;
+  myproc()->sz = myproc()->sz + n;
+  // if(ssugrow(n) < 0)
+  //   return -1;
+  
+  return addr;
+}

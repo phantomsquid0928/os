@@ -33,7 +33,7 @@ seginit(void)
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
 static pte_t *
-walkpgdir(pde_t *pgdir, const void *va, int alloc)
+walkpgdir(pde_t *pgdir, const void *va, int alloc) 
 {
   pde_t *pde;
   pte_t *pgtab;
@@ -57,7 +57,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int
+int
 mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;
@@ -216,8 +216,48 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
+// int allocuvmonly(pde_t *pgdir, uint oldsz, uint newsz) { 
+//   //gives only virtual memory, will cause trap, need manage. 하는거 1도 없고 그냥 더한결과 반환함->이게 virtual addr임.
+//   uint va;
+//   char * a;
+//   uint pa;
+//   char * last;
+//   pte_t *pte;
+//   if(newsz >= KERNBASE)
+//     return 0;
+//   if(newsz < oldsz)
+//     return oldsz;
+//   va = PGROUNDUP(oldsz);
+  
+//   for (; va < newsz; va += PGSIZE) {
+//     // char* mem = kalloc();
+//     // if (mem == 0) {
+//     //   cprintf("failed");
+//     //   deallocuvm(pgdir, newsz, oldsz);
+//     //   return 0;
+//     // }
+//     // memset(mem, 0, PGSIZE);
+//     a = (char*)PGROUNDDOWN((uint)va);
+//     // pa = V2P(mem);
+//     last = (char*)PGROUNDDOWN((uint)va + PGSIZE - 1);
+    
+//     // for (;;) {
+//     //   if ((pte = walkpgdir(pgdir, (char*)a, 0)) == 0)
+//     //     return -1;
+//     //   if (*pte & PTE_P)
+//     //     panic("remap22");
+//     //   // *pte = pa | PTE_W|PTE_U|PTE_P;
+//     //   if (a == last)
+//     //     break;
+//     //   a += PGSIZE;
+//     //   // pa += PGSIZE;
+//     // }
+//   }
+
+//   return newsz;
+// }
 // Allocate page tables and physical memory to grow process from oldsz to
-// newsz, which need not be page aligned.  Returns new size or 0 on error.
+// newsz, which need not be page aligned.  Returns new size or 0 on error. TODO : mod this for loop deletion and do it after trap manage. 
 int
 allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {

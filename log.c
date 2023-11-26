@@ -214,7 +214,7 @@ void
 log_write(struct buf *b)
 {
   int i;
-
+  // cprintf("logout: %d\n", log.outstanding);
   if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
     panic("too big a transaction");
   if (log.outstanding < 1)

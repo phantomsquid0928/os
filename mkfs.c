@@ -107,9 +107,10 @@ main(int argc, char *argv[])
 
   freeblock = nmeta;     // the first free block that we can allocate
 
-  for(i = 0; i < FSSIZE; i++)
+  for(i = 0; i < FSSIZE; i++) {
     wsect(i, zeroes);
-
+    printf("%d\n", i);
+  }
   memset(buf, 0, sizeof(buf));
   memmove(buf, &sb, sizeof(sb));
   wsect(1, buf);
@@ -251,7 +252,7 @@ balloc(int used)
 }
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
-
+uint indirect[NINDIRECT];
 void
 iappend(uint inum, void *xp, int n)
 {
@@ -259,7 +260,7 @@ iappend(uint inum, void *xp, int n)
   uint fbn, off, n1;
   struct dinode din;
   char buf[BSIZE];
-  uint indirect[NINDIRECT];
+
   uint x;
 
   rinode(inum, &din);

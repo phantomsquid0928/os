@@ -369,32 +369,153 @@ iunlockput(struct inode *ip)
 
 // Return the disk block address of the nth block in inode ip.
 // If there is no such block, bmap allocates one.
+
+/**
+ * TODO: fix here
+*/
 static uint
 bmap(struct inode *ip, uint bn)
 {
   uint addr, *a;
-  struct buf *bp;
+  struct buf *bp, *bt, *bs;
+  int i;
 
-  if(bn < NDIRECT){
+  if(bn < NDIRECT){ //n     direct = 6 needed 
     if((addr = ip->addrs[bn]) == 0)
-      ip->addrs[bn] = addr = balloc(ip->dev);
+      ip->addrs[bn] = addr = balloc(ip->dev); //data alloc
     return addr;
   }
   bn -= NDIRECT;
-
-  if(bn < NINDIRECT){
-    // Load indirect block, allocating if necessary.
-    if((addr = ip->addrs[NDIRECT]) == 0)
-      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+  //level 1 = bn < 512, bn -= 6
+  if (bn < LEVEL1) { //512 //verified
+    int sizeofaddr = (LEVEL1 / LEVEL1SH);
+    int bnidx = (int)bn / sizeofaddr + 6;
+    int bnleft = (int)bn % sizeofaddr;
+    if ((addr = ip->addrs[bnidx]) == 0)
+      ip->addrs[bnidx] = addr = balloc(ip->dev);
     bp = bread(ip->dev, addr);
-    a = (uint*)bp->data;
-    if((addr = a[bn]) == 0){
-      a[bn] = addr = balloc(ip->dev);
+    a = (uint*)bp->data; //block 내부 data 접근 - 1간접
+    if ((addr = a[bnleft]) == 0) {
+      a[bnleft] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
     return addr;
   }
+  bn -= LEVEL1;
+  //level2 = bn < 2 ^ 15 after bn -= 512
+  /**
+   * TODO: maybe below code cause err especially log_write , brelse etc
+   * TODO: for문 불가, 2level접근시에 a이용해야함., 인덱스번호이상...
+  */
+  if (bn < LEVEL2) {
+    // cprintf("level 2 called\n");
+    int sizeofaddr = LEVEL2;
+    int bnidx = (int)bn;
+    int bnleft = (int)bn;
+    int lv2values[2] = {LEVEL2SH, BSIZE / sizeof(uint)}; //2 128 
+
+    sizeofaddr /= lv2values[0];
+    bnidx /= sizeofaddr; //  bnidx / 16384
+    bnleft %= sizeofaddr; // % 16384
+    if ((addr = ip->addrs[bnidx + 10]) == 0) //addr = a[bnleft]
+      ip->addrs[bnidx + 10] = addr = balloc(ip->dev);
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data; //ex. addr[x] 접근 , x = 10, 11
+    
+    sizeofaddr /= lv2values[1]; //128
+    bnidx = bnleft / sizeofaddr; // 16383 / 128 = 127
+    bnleft %= sizeofaddr; // 127
+    if ((addr = a[bnidx]) == 0) { //addr = a[bnleft], 1간접 접근
+      a[bnidx] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+
+    bt = bread(ip->dev, addr);
+    a = (uint*)bt->data; //2간접 접근
+    if ((addr = a[bnleft]) == 0) { //2간접 접근후 데이터 read
+      a[bnleft] = addr = balloc(ip->dev);
+      log_write(bt);
+    }
+    brelse(bt);
+    
+    return addr;
+    // int sizeofaddr = (LEVEL2 / LEVEL2SH);
+    // int bnidx = (int)bn / sizeofaddr;
+    // int bnleft = bn % sizeofaddr;
+    // if ((addr = ip->addrs[bnidx]) == 0)
+    //   ip->addrs[bnidx] = addr = balloc(ip->dev);
+    // bp = bread(ip->dev, addr);
+    // a = (uint*)bp->data; //1간접 접근
+    // if ((addr = a[bnleft]) == 0) {
+    //   a[bnleft] = addr = balloc(ip->dev);
+    //   log_write(bp);
+    // }
+    // brelse(bp);
+    // sizeofaddr = sizeofaddr / (BSIZE / sizeof(uint));
+    // int bnidx2 = bnleft / sizeofaddr;
+    // int bnleft2 = bnleft % sizeofaddr; 
+  }
+  bn -= LEVEL2;
+  //level3 = bn < 2 ^ 21 after bn -= 2^15
+  if (bn < LEVEL3) { //3간접
+    int sizeofaddr = LEVEL3;
+    int bnidx = (int)bn;
+    int bnleft = (int)bn;
+    int lv3values[3] = {LEVEL3SH, BSIZE / sizeof(uint), BSIZE / sizeof(uint)}; //1 128
+
+    if ((addr = ip->addrs[12]) == 0) //addr = a[bnleft]
+      ip->addrs[12] = addr = balloc(ip->dev);
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data; //ex. addr[x] 접근 , x = 10, 11
+    
+    sizeofaddr /= lv3values[1]; //16384
+    bnidx = bnleft / sizeofaddr; // 2097151 / 16384 = 127
+    bnleft %= sizeofaddr; // 2097151 % 16384 = 16383
+    if ((addr = a[bnidx]) == 0) { //addr = a[bnleft], 1간접 접근
+      a[bnidx] = addr = balloc(ip->dev);
+      log_write(bp);
+    }
+    brelse(bp);
+
+    bt = bread(ip->dev, addr);
+    a = (uint*)bt->data; //2간접 접근
+
+    sizeofaddr /= lv3values[2]; //128
+    bnidx = bnleft / sizeofaddr; //16383 / 128 = 127
+    bnleft = bnleft % sizeofaddr;
+
+    if ((addr = a[bnidx]) == 0) { //2간접 접근후 데이터 read
+      a[bnidx] = addr = balloc(ip->dev);
+      log_write(bt);
+    }
+    brelse(bt);
+
+    bs = bread(ip->dev, addr);
+    a = (uint*)bs->data;
+
+    if ((addr = a[bnleft]) == 0){ //3간접 접근, 데이터 read
+      a[bnleft] = addr = balloc(ip->dev);
+      log_write(bs);
+    }
+    brelse(bs);
+    return addr;
+  }
+
+  // if(bn < NINDIRECT){  // bn < 128 -> indirect inode, bn means address 0 ~ 127
+  //   // Load indirect block, allocating if necessary.
+  //   if((addr = ip->addrs[NDIRECT]) == 0) //없으면 balloc 한다
+  //     ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+  //   bp = bread(ip->dev, addr);
+  //   a = (uint*)bp->data;
+  //   if((addr = a[bn]) == 0){
+  //     a[bn] = addr = balloc(ip->dev);
+  //     log_write(bp);
+  //   }
+  //   brelse(bp);
+  //   return addr;
+  // }
 
   panic("bmap: out of range");
 }
@@ -404,12 +525,15 @@ bmap(struct inode *ip, uint bn)
 // to it (no directory entries referring to it)
 // and has no in-memory reference to it (is
 // not an open file or current directory).
+/**
+ * TODO: fix here
+*/
 static void
-itrunc(struct inode *ip)
+ itrunc(struct inode *ip)
 {
-  int i, j;
-  struct buf *bp;
-  uint *a;
+  int i, j, k, l;
+  struct buf *bp, *bt, *bs;
+  uint *a, *b, *c;
 
   for(i = 0; i < NDIRECT; i++){
     if(ip->addrs[i]){
@@ -417,21 +541,89 @@ itrunc(struct inode *ip)
       ip->addrs[i] = 0;
     }
   }
-
-  if(ip->addrs[NDIRECT]){
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
+  for (i = 0; i < 4; i++) { //1단계 존재?
+    if (ip->addrs[NDIRECT + i]) {
+      bp = bread(ip->dev, ip->addrs[NDIRECT + i]);
+      a = (uint*)bp->data;
+      for(j = 0; j < 128; j++) {
+        if (a[j])
+          bfree(ip->dev, a[j]);
+      }
+      brelse(bp);
+      bfree(ip->dev, ip->addrs[NDIRECT + i]);
+      ip->addrs[NDIRECT + i] = 0;
+    }
+  }
+  /**
+   * TODO: bp 계속 사용하면서 brelse()하는데 에러 안나나 확인
+  */
+  for (i = 0; i < 2; i++) {  //2단계 존재? 
+    if (ip->addrs[NDIRECT + LEVEL1SH + i]) {
+      bp = bread(ip->dev, ip->addrs[NDIRECT + LEVEL1SH + i]);
+      a = (uint*)bp->data;
+      for (j = 0; j < 128; j++) {
+        if (a[j]) {
+          bt = bread(ip->dev, a[j]);
+          b = (uint*)bt->data;
+          for (k = 0; k < 128; k++) {
+            if (b[k])
+              bfree(ip->dev, b[k]);
+          }
+          brelse(bt);
+          bfree(ip->dev, a[j]);
+        }
+      }
+      brelse(bp);
+      bfree(ip->dev, ip->addrs[NDIRECT + LEVEL1SH + i]);
+      ip->addrs[NDIRECT + LEVEL1SH + i] = 0;
+    }
+  }
+  if (ip->addrs[NDIRECT + LEVEL1SH + LEVEL2SH]) {//3단계 존재?
+    bp = bread(ip->dev, ip->addrs[NDIRECT + LEVEL1SH + LEVEL2SH]);
     a = (uint*)bp->data;
-    for(j = 0; j < NINDIRECT; j++){
-      if(a[j])
-        bfree(ip->dev, a[j]);
+    for(i = 0; i < 128; i++) {
+      if (a[i]) {
+        bt = bread(ip->dev, a[i]);
+        b = (uint*)bt->data;
+        for (j = 0; j < 128; j++) {
+          if (b[j]) {
+            bs = bread(ip->dev, b[j]);
+            c = (uint*)bs->data;
+            for (k = 0; k < 128; k++) {
+              if (c[k])
+                bfree(ip->dev, c[k]);
+            }
+            brelse(bs);
+            bfree(ip->dev, b[j]);
+          } 
+        }
+        brelse(bt);
+        bfree(ip->dev, a[i]);
+      }
     }
     brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT]);
-    ip->addrs[NDIRECT] = 0;
+    bfree(ip->dev, ip->addrs[NDIRECT + LEVEL1SH + LEVEL2SH]);
+    ip->addrs[NDIRECT + LEVEL1SH + LEVEL2SH] = 0;
   }
+
+
+
+  /////////////
+  // if(ip->addrs[NDIRECT]){
+  //   bp = bread(ip->dev, ip->addrs[NDIRECT]);
+  //   a = (uint*)bp->data;
+  //   for(j = 0; j < NINDIRECT; j++){
+  //     if(a[j])
+  //       bfree(ip->dev, a[j]);
+  //   }
+  //   brelse(bp);
+  //   bfree(ip->dev, ip->addrs[NDIRECT]);
+  //   ip->addrs[NDIRECT] = 0;
+  // }
 
   ip->size = 0;
   iupdate(ip);
+  // cprintf("success???????\n");
 }
 
 // Copy stat information from inode.
