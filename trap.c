@@ -93,7 +93,6 @@ trap(struct trapframe *tf)
     }
     memset(mem,0,PGSIZE);
     mappages(myproc()->pgdir, (char*)page, PGSIZE, V2P(mem), PTE_W|PTE_U);
-    myproc()->psz += PGSIZE;
     break;
 
   //PAGEBREAK: 13

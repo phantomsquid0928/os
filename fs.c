@@ -378,7 +378,6 @@ bmap(struct inode *ip, uint bn)
 {
   uint addr, *a;
   struct buf *bp, *bt, *bs;
-  int i;
 
   if(bn < NDIRECT){ //n     direct = 6 needed 
     if((addr = ip->addrs[bn]) == 0)
@@ -531,7 +530,7 @@ bmap(struct inode *ip, uint bn)
 static void
  itrunc(struct inode *ip)
 {
-  int i, j, k, l;
+  int i, j, k;
   struct buf *bp, *bt, *bs;
   uint *a, *b, *c;
 

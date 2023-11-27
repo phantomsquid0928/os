@@ -216,48 +216,21 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
   return 0;
 }
 
-// int allocuvmonly(pde_t *pgdir, uint oldsz, uint newsz) { 
-//   //gives only virtual memory, will cause trap, need manage. 하는거 1도 없고 그냥 더한결과 반환함->이게 virtual addr임.
-//   uint va;
-//   char * a;
-//   uint pa;
-//   char * last;
-//   pte_t *pte;
-//   if(newsz >= KERNBASE)
-//     return 0;
-//   if(newsz < oldsz)
-//     return oldsz;
-//   va = PGROUNDUP(oldsz);
-  
-//   for (; va < newsz; va += PGSIZE) {
-//     // char* mem = kalloc();
-//     // if (mem == 0) {
-//     //   cprintf("failed");
-//     //   deallocuvm(pgdir, newsz, oldsz);
-//     //   return 0;
-//     // }
-//     // memset(mem, 0, PGSIZE);
-//     a = (char*)PGROUNDDOWN((uint)va);
-//     // pa = V2P(mem);
-//     last = (char*)PGROUNDDOWN((uint)va + PGSIZE - 1);
-    
-//     // for (;;) {
-//     //   if ((pte = walkpgdir(pgdir, (char*)a, 0)) == 0)
-//     //     return -1;
-//     //   if (*pte & PTE_P)
-//     //     panic("remap22");
-//     //   // *pte = pa | PTE_W|PTE_U|PTE_P;
-//     //   if (a == last)
-//     //     break;
-//     //   a += PGSIZE;
-//     //   // pa += PGSIZE;
-//     // }
-//   }
-
-//   return newsz;
-// }
+int findppbywalk() { 
+  int pp = 0;
+  int end = myproc()->sz;
+  pde_t *pgdir = myproc()->pgdir;
+  int i = 0;
+  pte_t *pte;
+  for (i = 0; i < end; i += PGSIZE) {
+    if((pte = walkpgdir(pgdir, (void*)i, 0)) == 0) continue;
+    if (*pte & PTE_P)
+      pp++;
+  }
+  return pp;
+}
 // Allocate page tables and physical memory to grow process from oldsz to
-// newsz, which need not be page aligned.  Returns new size or 0 on error. TODO : mod this for loop deletion and do it after trap manage. 
+// newsz, which need not be page aligned.  Returns new size or 0 on error.
 int
 allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {

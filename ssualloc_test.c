@@ -22,21 +22,21 @@ int main(void)
 {
 	int ret;
 	printf(1, "Start: memory usages: virtual pages: %d, physical pages: %d\n", getvp(), getpp());
-	ret = ssualloc2(-1234);
+	ret = ssualloc(-1234);
 
 	if(ret < 0) 
 		printf(1, "ssualloc() usage: argument wrong...\n");
 	else
 		exit();
   	
-	ret = ssualloc2(1234);
+	ret = ssualloc(1234);
 
 	if(ret < 0)
 		printf(1, "ssualloc() usage: argument wrong...\n");
 	else
 		exit();
 
-	ret = ssualloc2(4096);
+	ret = ssualloc(4096);
 
 	if(ret < 0 )
 		printf(1, "ssualloc(): failed...\n");
@@ -48,7 +48,7 @@ int main(void)
 		printf(1, "After access one virtual page: virtual pages: %d, physical pages: %d\n", getvp(), getpp());
 	}
 
-	ret = ssualloc2(12288);
+	ret = ssualloc(12288);
 
 	if(ret < 0 )
 		printf(1, "ssualloc(): failed...\n");

@@ -174,27 +174,6 @@ growproc(int n)
   return 0;
 }
 
-// int ssugrow(int n) {
-//   uint sz;
-//   struct proc *curproc = myproc();
-
-//   sz = curproc->sz;
-//   // if (curproc->psz == 0) { // 초기 physical memory 크기는 어차피 sz랑 동일하므로 
-//   //   curproc->psz = curproc->sz;
-//   // }
-//   cprintf("here");  
-//   if (n > 0) {
-//     if ((sz = allocuvmonly(curproc->pgdir, sz, sz + n)) == 0) return -1;
-//   } else if (n < 0) {
-//     if ((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0) return -1; //can cause kfree panic here
-//   }
-//   cprintf("here");  
-//   curproc->sz = sz;
-//   switchuvm(curproc);
-//   cprintf("here");  
-//   return 0;
-// }
-
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.

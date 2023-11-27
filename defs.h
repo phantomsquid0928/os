@@ -177,8 +177,9 @@ pde_t*          setupkvm(void);
 char*           uva2ka(pde_t*, char*);
 int             allocuvm(pde_t*, uint, uint);
 
-int             allocuvmonly(pde_t*, uint, uint);
-int             ssugrow(int);
+int             findppbywalk(void);
+// int             allocuvmonly(pde_t*, uint, uint);
+// int             ssugrow(int);
 
 int             deallocuvm(pde_t*, uint, uint);
 void            freevm(pde_t*);

@@ -95,59 +95,59 @@ malloc(uint nbytes)
  * 그냥 반환하고, pgfault가 일어나면 hp->s.size등의 연산 ㄱ
 */
 
-static Header*
-morecoressu(uint nu) 
-{
-  char *p;
-  Header *hp;
+// static Header*
+// morecoressu(uint nu) 
+// {
+//   char *p;
+//   Header *hp;
 
-  // if(nu % 4096 != 0)
-  //   return 0;
-  p = ssualloc(nu * sizeof(Header));
-  // printf(1, "SHHS");
-  if(p == (char*)-1)
-    return 0;
-  // printf(1, "tt");
-  hp = (Header*)p;
-  // hp->s.size = nu;
-  // free((void*)(hp + 1));
-  freep = p;
-  return freep;
-}
-/**
- * TODO: kallo형식으로 바꿔야함
-*/
-int ssualloc2(uint nbytes) { 
-  Header *p, *prevp;
-  uint nunits;
-  if (nbytes % 4096 != 0) return -1;
-  nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header);
-  if((prevp = freep) == 0){
-    base.s.ptr = freep = prevp = &base;
-    base.s.size = 0;
-  }
-  for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
-    if(p->s.size >= nunits){
-      if(p->s.size == nunits)
-        prevp->s.ptr = p->s.ptr;
-      else {
-        p->s.size -= nunits;
-        p += p->s.size;
-        p->s.size = nunits;
-      }
-      freep = prevp;
-      // return (void*)(p + 1);
-      return (p+1);
-    }
-    if(p == freep) {
-      printf(1, "called!\n");
-      if((p = morecoressu(nunits)) == 0) 
-        return -1;
-      
-    }
-  }
-}
-
-// int ssualloc2(uint nbytes) {
-
+//   // if(nu % 4096 != 0)
+//   //   return 0;
+//   p = ssualloc(nu * sizeof(Header));
+//   // printf(1, "SHHS");
+//   if(p == (char*)-1)
+//     return 0;
+//   // printf(1, "tt");
+//   hp = (Header*)p;
+//   // hp->s.size = nu;
+//   // free((void*)(hp + 1));
+//   freep = p;
+//   return freep;
 // }
+// /**
+//  * TODO: kallo형식으로 바꿔야함
+// */
+// int ssualloc2(uint nbytes) { 
+//   Header *p, *prevp;
+//   uint nunits;
+//   if (nbytes % 4096 != 0) return -1;
+//   nunits = (nbytes + sizeof(Header) - 1)/sizeof(Header);
+//   if((prevp = freep) == 0){
+//     base.s.ptr = freep = prevp = &base;
+//     base.s.size = 0;
+//   }
+//   for(p = prevp->s.ptr; ; prevp = p, p = p->s.ptr){
+//     if(p->s.size >= nunits){
+//       if(p->s.size == nunits)
+//         prevp->s.ptr = p->s.ptr;
+//       else {
+//         p->s.size -= nunits;
+//         p += p->s.size;
+//         p->s.size = nunits;
+//       }
+//       freep = prevp;
+//       // return (void*)(p + 1);
+//       return (p+1);
+//     }
+//     if(p == freep) {
+//       printf(1, "called!\n");
+//       if((p = morecoressu(nunits)) == 0) 
+//         return -1;
+      
+//     }
+//   }
+// }
+
+// // int ssualloc2(uint nbytes) {
+
+// // }

@@ -95,7 +95,7 @@ int sys_getvp(void) {
 }
 
 int sys_getpp(void) {
-  return PGROUNDUP(myproc()->psz) / PGSIZE;
+  return findppbywalk();
 }
 
 int sys_ssualloc(void) { //sbrk 따온거 -> 수정필요, 테스트용
@@ -104,10 +104,11 @@ int sys_ssualloc(void) { //sbrk 따온거 -> 수정필요, 테스트용
 
   if(argint(0, &n) < 0)
     return -1;
+  if (n % PGSIZE != 0 || n < 0) return -1;
   addr = myproc()->sz;
   myproc()->sz = myproc()->sz + n;
   // if(ssugrow(n) < 0)
   //   return -1;
-  
+  // cprintf("hello");`
   return addr;
 }
